@@ -1,24 +1,30 @@
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from typing import List
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers import PydanticOutputParser
-from langchain.agents import create_tool_calling_agent, AgentExecutor 
+from langchain.agents import create_tool_calling_agent, AgentExecutor
+from typing import List
+from tools import search_tool, wiki_tool, save_tool
+import os
+
+
 
 load_dotenv()
 
 class Response(BaseModel):
     title: str
     summary: str    
-    sources: List[str] = Field(description="List of sources")
-    tools_used: List[str] = Field(description="List of tools used in the research process")
+    sources: List[str] 
+    tools_used: List[str] 
 
 
 #LLM initialization
 #llm = ChatOpenAI(model="gpt-4o-mini")
 
+api_key = os.getenv("ANTHROPIC_API_KEY")
 llm2 = ChatAnthropic(model="claude-3-5-sonnet-20241022")
 parser = PydanticOutputParser(pydantic_object=Response)
 
@@ -128,45 +134,33 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 ).partial(format_instructions=parser.get_format_instructions())
 
-response = llm2.invoke("Let's see how it goes")
-print(response)
 
-
-print("\n" + "="*50)
-print("Testing basic LLM response:")
-print("="*50)
-
-try:
-    response = llm2.invoke("Let's see how it goes")
-    print("✓ Basic LLM response:")
-    print(response.content)
-except Exception as e:
-    print(f"x LLM error: {e}")
-
-# Agent setup (you'll need to add actual tools)
-print("\n" + "="*50)
-print("Setting up agent:")
-print("="*50)
-
-try:
-    agent = create_tool_calling_agent(
-        llm=llm2,
-        prompt=prompt,
-        tools=[]  # Add your actual tools here
-    )
+tools = [search_tool, wiki_tool, save_tool]
+agent = create_tool_calling_agent(
+    llm=llm2,
+    prompt=prompt,
+    tools=tools  # Add your actual tools here
+)
     
-    agent_executor = AgentExecutor(agent=agent, tools=[], verbose=True)
-    
-    print("✓ Agent created successfully!")
-    
+agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
     # Test agent execution
-    raw_response = agent_executor.invoke({
-        "query": "What is the capital city of Kenya?", 
-        "chat_history": []
-    })
-    
-    print("✓ Agent response:")
-    print(raw_response)
-    
+
+query = input("What can I help you research? ")
+
+raw_response = agent_executor.invoke({"query": query})
+
+
+
+try:
+    structured_response = parser.parse(raw_response.get("output")[0]["text"])
+    print(structured_response)
 except Exception as e:
-    print(f"✗ Agent error: {e}")
+        print("Error parsing response", e, "Raw Response - ", raw_response)
+
+riot = "jbsdjbdjsk"
+print(riot)
+print(f"Ambush the leader of the {riot} ")
+
+
+
+
