@@ -1,4 +1,3 @@
 # Research-AI-agent-aag1
-An AI agent to assist users do quick researches on their preferred topics
-#Let'sgooooooooo
+An AI agent for quick researche on preferred topics
 
